@@ -1,0 +1,8 @@
+pandas
+pyarrow
+sqlalchemy
+psycopg2-binary
+tqdm
+requests
+openmeteo-requests
+retry-requests
