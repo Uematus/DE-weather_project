@@ -5,7 +5,7 @@
 | Task                       | Instrument                        |
 |----------------------------|-----------------------------------|
 | Ingestion + transformation | Bruin (Python asset → SQL assets) |
-| Scheduling                 | system cron на VPS                |
+| Scheduling                 | system cron on VPS                |
 | Storage                    | PostgreSQL (stage / core / mart schemas)|
 | Admin                      | pgAdmin                           |
 | Dashboard                  | Power BI Service (Import mode)    |
