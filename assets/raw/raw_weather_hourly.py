@@ -4,8 +4,8 @@ type: python
 connection: postgres_default
 
 description: >
-  Сырые почасовые данные погоды из Open-Meteo Historical API.
-  Все доступные переменные. Одна строка = один час для одного города.
+  Raw hourly weather data from Open-Meteo Historical API.
+  All available variables. One row = one hour for one city.
 @bruin"""
 
 import os
@@ -15,15 +15,17 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from datetime import datetime, timedelta
 
-# ---------------------------------------------------------------------------
-# 1. Параметры локации
-# ---------------------------------------------------------------------------
+
+############################################################################
+# 1. Location Parameters
+############################################################################
+
 LOCATION_NAME = "London"
 LATITUDE      = "51.5085"
 LONGITUDE     = "-0.1257"
 TIMEZONE      = "Europe/London"
 
-# Bruin передаёт даты через переменные окружения
+# Bruin passes dates through environment variables
 START_DATE = os.environ.get("BRUIN_START_DATE",
                              (datetime.today() - timedelta(days=2)).strftime("%Y-%m-%d"))
 END_DATE   = os.environ.get("BRUIN_END_DATE",
@@ -32,9 +34,11 @@ END_DATE   = os.environ.get("BRUIN_END_DATE",
 print(f"[INFO] Location : {LOCATION_NAME} ({LATITUDE}, {LONGITUDE})")
 print(f"[INFO] Period   : {START_DATE} -> {END_DATE}")
 
-# ---------------------------------------------------------------------------
-# 2. Все почасовые переменные
-# ---------------------------------------------------------------------------
+
+############################################################################
+# 2. All hourly variables
+############################################################################
+
 HOURLY_VARS = [
     "temperature_2m", "relative_humidity_2m", "dew_point_2m",
     "apparent_temperature", "vapour_pressure_deficit",
@@ -55,9 +59,11 @@ HOURLY_VARS = [
     "is_day",
 ]
 
-# ---------------------------------------------------------------------------
-# 3. Запрос к API
-# ---------------------------------------------------------------------------
+
+############################################################################
+# 3. Request to API
+############################################################################
+
 API_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 params = {
@@ -81,9 +87,11 @@ data = response.json()
 print(f"[INFO] Grid cell: lat={data.get('latitude')}, "
       f"lon={data.get('longitude')}, elevation={data.get('elevation')} m")
 
-# ---------------------------------------------------------------------------
+
+############################################################################
 # 4. JSON -> DataFrame
-# ---------------------------------------------------------------------------
+############################################################################
+
 hourly_data = data["hourly"]
 units       = data.get("hourly_units", {})
 
@@ -102,9 +110,11 @@ df["loaded_at"]  = datetime.now()
 print(f"[INFO] Rows fetched: {len(df)}")
 print(f"[INFO] Columns    : {list(df.columns)}")
 
-# ---------------------------------------------------------------------------
-# 5. Подключение к PostgreSQL
-# ---------------------------------------------------------------------------
+
+############################################################################
+# 5. Connection to PostgreSQL
+############################################################################
+
 PG_HOST = os.environ.get("BRUIN_PG_HOST",     "db")
 PG_PORT = os.environ.get("BRUIN_PG_PORT",     "5432")
 PG_DB   = os.environ.get("BRUIN_PG_DB",       "weather_db")
@@ -114,9 +124,11 @@ PG_PASS = os.environ.get("BRUIN_PG_PASSWORD", "de_password")
 conn_str = f"postgresql+psycopg2://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
 engine   = create_engine(conn_str)
 
-# ---------------------------------------------------------------------------
-# 6. Создаём таблицу если нет + idempotent удаление дублей
-# ---------------------------------------------------------------------------
+
+# ############################################################################
+# 6. Create table if not exists + idempotent removal of duplicates
+# ############################################################################
+
 CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS raw.weather_hourly (
     location_name                        TEXT,
@@ -179,9 +191,11 @@ with engine.begin() as conn:
 
 print(f"[INFO] Table ready. Old records cleared for {LOCATION_NAME}.")
 
-# ---------------------------------------------------------------------------
-# 7. Запись в raw.weather_hourly
-# ---------------------------------------------------------------------------
+
+# ############################################################################
+# 7. Write to raw.weather_hourly
+# ############################################################################
+
 df.to_sql(
     name      = "weather_hourly",
     schema    = "raw",
