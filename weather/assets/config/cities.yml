@@ -1,0 +1,1262 @@
+# =============================================================================
+# cities.yml — single source of truth for all pipeline city references.
+# Used by: stage_weather_hourly.py, core dim assets.
+#
+# active: true  → included in daily incremental and backfill runs.
+# active: false → city exists in config but is not loaded.
+# =============================================================================
+
+cities:
+
+  # ---------------------------------------------------------------------------
+  # North Europe (15)
+  # ---------------------------------------------------------------------------
+  - name: Reykjavik
+    lat: 64.1355
+    lon: -21.8954
+    tz: Atlantic/Reykjavik
+    country: Iceland
+    country_iso2: IS
+    country_iso3: ISL
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: ET
+    active: true
+
+  - name: Oslo
+    lat: 59.9139
+    lon: 10.7522
+    tz: Europe/Oslo
+    country: Norway
+    country_iso2: "NO"
+    country_iso3: "NOR"
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Bergen
+    lat: 60.3913
+    lon: 5.3221
+    tz: Europe/Oslo
+    country: Norway
+    country_iso2: "NO"
+    country_iso3: "NOR"
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Tromso
+    lat: 69.6492
+    lon: 18.9553
+    tz: Europe/Oslo
+    country: Norway
+    country_iso2: "NO"
+    country_iso3: "NOR"
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Dfc
+    active: true
+
+  - name: Stockholm
+    lat: 59.3293
+    lon: 18.0686
+    tz: Europe/Stockholm
+    country: Sweden
+    country_iso2: SE
+    country_iso3: SWE
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Gothenburg
+    lat: 57.7089
+    lon: 11.9746
+    tz: Europe/Stockholm
+    country: Sweden
+    country_iso2: SE
+    country_iso3: SWE
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Malmo
+    lat: 55.6050
+    lon: 13.0038
+    tz: Europe/Stockholm
+    country: Sweden
+    country_iso2: SE
+    country_iso3: SWE
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Helsinki
+    lat: 60.1699
+    lon: 24.9384
+    tz: Europe/Helsinki
+    country: Finland
+    country_iso2: FI
+    country_iso3: FIN
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Tampere
+    lat: 61.4978
+    lon: 23.7610
+    tz: Europe/Helsinki
+    country: Finland
+    country_iso2: FI
+    country_iso3: FIN
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Oulu
+    lat: 65.0121
+    lon: 25.4651
+    tz: Europe/Helsinki
+    country: Finland
+    country_iso2: FI
+    country_iso3: FIN
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Dfc
+    active: true
+
+  - name: Copenhagen
+    lat: 55.6761
+    lon: 12.5683
+    tz: Europe/Copenhagen
+    country: Denmark
+    country_iso2: DK
+    country_iso3: DNK
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Aarhus
+    lat: 56.1572
+    lon: 10.2107
+    tz: Europe/Copenhagen
+    country: Denmark
+    country_iso2: DK
+    country_iso3: DNK
+    continent: Europe
+    region: Northern Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Tallinn
+    lat: 59.4370
+    lon: 24.7536
+    tz: Europe/Tallinn
+    country: Estonia
+    country_iso2: EE
+    country_iso3: EST
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Riga
+    lat: 56.9460
+    lon: 24.1059
+    tz: Europe/Riga
+    country: Latvia
+    country_iso2: LV
+    country_iso3: LVA
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Vilnius
+    lat: 54.6872
+    lon: 25.2797
+    tz: Europe/Vilnius
+    country: Lithuania
+    country_iso2: LT
+    country_iso3: LTU
+    continent: Europe
+    region: Northern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  # ---------------------------------------------------------------------------
+  # West Europe (15)
+  # ---------------------------------------------------------------------------
+  - name: London
+    lat: 51.5085
+    lon: -0.1257
+    tz: Europe/London
+    country: United Kingdom
+    country_iso2: GB
+    country_iso3: GBR
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Manchester
+    lat: 53.4808
+    lon: -2.2426
+    tz: Europe/London
+    country: United Kingdom
+    country_iso2: GB
+    country_iso3: GBR
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Edinburgh
+    lat: 55.9533
+    lon: -3.1883
+    tz: Europe/London
+    country: United Kingdom
+    country_iso2: GB
+    country_iso3: GBR
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Birmingham
+    lat: 52.4862
+    lon: -1.8904
+    tz: Europe/London
+    country: United Kingdom
+    country_iso2: GB
+    country_iso3: GBR
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Glasgow
+    lat: 55.8642
+    lon: -4.2518
+    tz: Europe/London
+    country: United Kingdom
+    country_iso2: GB
+    country_iso3: GBR
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Dublin
+    lat: 53.3331
+    lon: -6.2489
+    tz: Europe/Dublin
+    country: Ireland
+    country_iso2: IE
+    country_iso3: IRL
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Paris
+    lat: 48.8534
+    lon: 2.3488
+    tz: Europe/Paris
+    country: France
+    country_iso2: FR
+    country_iso3: FRA
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Lyon
+    lat: 45.7640
+    lon: 4.8357
+    tz: Europe/Paris
+    country: France
+    country_iso2: FR
+    country_iso3: FRA
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Marseille
+    lat: 43.2965
+    lon: 5.3698
+    tz: Europe/Paris
+    country: France
+    country_iso2: FR
+    country_iso3: FRA
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Bordeaux
+    lat: 44.8378
+    lon: -0.5792
+    tz: Europe/Paris
+    country: France
+    country_iso2: FR
+    country_iso3: FRA
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Amsterdam
+    lat: 52.3740
+    lon: 4.8897
+    tz: Europe/Amsterdam
+    country: Netherlands
+    country_iso2: NL
+    country_iso3: NLD
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Rotterdam
+    lat: 51.9225
+    lon: 4.4792
+    tz: Europe/Amsterdam
+    country: Netherlands
+    country_iso2: NL
+    country_iso3: NLD
+    continent: Europe
+    region: Western Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Brussels
+    lat: 50.8503
+    lon: 4.3517
+    tz: Europe/Brussels
+    country: Belgium
+    country_iso2: BE
+    country_iso3: BEL
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Luxembourg City
+    lat: 49.6116
+    lon: 6.1319
+    tz: Europe/Luxembourg
+    country: Luxembourg
+    country_iso2: LU
+    country_iso3: LUX
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Lisbon
+    lat: 38.7167
+    lon: -9.1333
+    tz: Europe/Lisbon
+    country: Portugal
+    country_iso2: PT
+    country_iso3: PRT
+    continent: Europe
+    region: Western Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  # ---------------------------------------------------------------------------
+  # Central Europe (20)
+  # ---------------------------------------------------------------------------
+  - name: Berlin
+    lat: 52.5244
+    lon: 13.4105
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Hamburg
+    lat: 53.5753
+    lon: 10.0153
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Munich
+    lat: 48.1374
+    lon: 11.5755
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Frankfurt
+    lat: 50.1109
+    lon: 8.6821
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Cologne
+    lat: 50.9333
+    lon: 6.9500
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Stuttgart
+    lat: 48.7758
+    lon: 9.1829
+    tz: Europe/Berlin
+    country: Germany
+    country_iso2: DE
+    country_iso3: DEU
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Vienna
+    lat: 48.2085
+    lon: 16.3721
+    tz: Europe/Vienna
+    country: Austria
+    country_iso2: AT
+    country_iso3: AUT
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Graz
+    lat: 47.0707
+    lon: 15.4395
+    tz: Europe/Vienna
+    country: Austria
+    country_iso2: AT
+    country_iso3: AUT
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Prague
+    lat: 50.0878
+    lon: 14.4205
+    tz: Europe/Prague
+    country: Czech Republic
+    country_iso2: CZ
+    country_iso3: CZE
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Brno
+    lat: 49.1951
+    lon: 16.6068
+    tz: Europe/Prague
+    country: Czech Republic
+    country_iso2: CZ
+    country_iso3: CZE
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Warsaw
+    lat: 52.2298
+    lon: 21.0118
+    tz: Europe/Warsaw
+    country: Poland
+    country_iso2: PL
+    country_iso3: POL
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Krakow
+    lat: 50.0647
+    lon: 19.9450
+    tz: Europe/Warsaw
+    country: Poland
+    country_iso2: PL
+    country_iso3: POL
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Wroclaw
+    lat: 51.1079
+    lon: 17.0385
+    tz: Europe/Warsaw
+    country: Poland
+    country_iso2: PL
+    country_iso3: POL
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Gdansk
+    lat: 54.3520
+    lon: 18.6466
+    tz: Europe/Warsaw
+    country: Poland
+    country_iso2: PL
+    country_iso3: POL
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Bratislava
+    lat: 48.1486
+    lon: 17.1077
+    tz: Europe/Bratislava
+    country: Slovakia
+    country_iso2: SK
+    country_iso3: SVK
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Zurich
+    lat: 47.3769
+    lon: 8.5417
+    tz: Europe/Zurich
+    country: Switzerland
+    country_iso2: CH
+    country_iso3: CHE
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Geneva
+    lat: 46.2044
+    lon: 6.1432
+    tz: Europe/Zurich
+    country: Switzerland
+    country_iso2: CH
+    country_iso3: CHE
+    continent: Europe
+    region: Central Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Ljubljana
+    lat: 46.0569
+    lon: 14.5058
+    tz: Europe/Ljubljana
+    country: Slovenia
+    country_iso2: SI
+    country_iso3: SVN
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Zagreb
+    lat: 45.8150
+    lon: 15.9819
+    tz: Europe/Zagreb
+    country: Croatia
+    country_iso2: HR
+    country_iso3: HRV
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Cfb
+    active: true
+
+  - name: Budapest
+    lat: 47.4984
+    lon: 19.0405
+    tz: Europe/Budapest
+    country: Hungary
+    country_iso2: HU
+    country_iso3: HUN
+    continent: Europe
+    region: Central Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  # ---------------------------------------------------------------------------
+  # East Europe (15)
+  # ---------------------------------------------------------------------------
+  - name: Kyiv
+    lat: 50.4547
+    lon: 30.5238
+    tz: Europe/Kyiv
+    country: Ukraine
+    country_iso2: UA
+    country_iso3: UKR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Kharkiv
+    lat: 49.9935
+    lon: 36.2304
+    tz: Europe/Kyiv
+    country: Ukraine
+    country_iso2: UA
+    country_iso3: UKR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Lviv
+    lat: 49.8397
+    lon: 24.0297
+    tz: Europe/Kyiv
+    country: Ukraine
+    country_iso2: UA
+    country_iso3: UKR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Odessa
+    lat: 46.4825
+    lon: 30.7233
+    tz: Europe/Kyiv
+    country: Ukraine
+    country_iso2: UA
+    country_iso3: UKR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: false
+    climate_zone: BSk
+    active: true
+
+  - name: Minsk
+    lat: 53.9045
+    lon: 27.5615
+    tz: Europe/Minsk
+    country: Belarus
+    country_iso2: BY
+    country_iso3: BLR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Bucharest
+    lat: 44.4323
+    lon: 26.1063
+    tz: Europe/Bucharest
+    country: Romania
+    country_iso2: RO
+    country_iso3: ROU
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfa
+    active: true
+
+  - name: Cluj-Napoca
+    lat: 46.7712
+    lon: 23.6236
+    tz: Europe/Bucharest
+    country: Romania
+    country_iso2: RO
+    country_iso3: ROU
+    continent: Europe
+    region: Eastern Europe
+    is_capital: false
+    climate_zone: Dfb
+    active: true
+
+  - name: Sofia
+    lat: 42.6977
+    lon: 23.3219
+    tz: Europe/Sofia
+    country: Bulgaria
+    country_iso2: BG
+    country_iso3: BGR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Plovdiv
+    lat: 42.1354
+    lon: 24.7453
+    tz: Europe/Sofia
+    country: Bulgaria
+    country_iso2: BG
+    country_iso3: BGR
+    continent: Europe
+    region: Eastern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Chisinau
+    lat: 47.0105
+    lon: 28.8638
+    tz: Europe/Chisinau
+    country: Moldova
+    country_iso2: MD
+    country_iso3: MDA
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Tirana
+    lat: 41.3275
+    lon: 19.8187
+    tz: Europe/Tirane
+    country: Albania
+    country_iso2: AL
+    country_iso3: ALB
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Skopje
+    lat: 41.9981
+    lon: 21.4254
+    tz: Europe/Skopje
+    country: North Macedonia
+    country_iso2: MK
+    country_iso3: MKD
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Pristina
+    lat: 42.6629
+    lon: 21.1655
+    tz: Europe/Belgrade
+    country: Kosovo
+    country_iso2: XK
+    country_iso3: XKX
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Podgorica
+    lat: 42.4304
+    lon: 19.2594
+    tz: Europe/Podgorica
+    country: Montenegro
+    country_iso2: ME
+    country_iso3: MNE
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Sarajevo
+    lat: 43.8519
+    lon: 18.3866
+    tz: Europe/Sarajevo
+    country: Bosnia and Herzegovina
+    country_iso2: BA
+    country_iso3: BIH
+    continent: Europe
+    region: Eastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  # ---------------------------------------------------------------------------
+  # South Europe (20)
+  # ---------------------------------------------------------------------------
+  - name: Madrid
+    lat: 40.4165
+    lon: -3.7026
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: true
+    climate_zone: BSk
+    active: true
+
+  - name: Barcelona
+    lat: 41.3888
+    lon: 2.1590
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Valencia
+    lat: 39.4699
+    lon: -0.3763
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Bsk
+    active: true
+
+  - name: Seville
+    lat: 37.3891
+    lon: -5.9845
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Bilbao
+    lat: 43.2630
+    lon: -2.9350
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Cfb
+    active: true
+
+  - name: Malaga
+    lat: 36.7213
+    lon: -4.4214
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Palma
+    lat: 39.5696
+    lon: 2.6502
+    tz: Europe/Madrid
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Las Palmas
+    lat: 28.1248
+    lon: -15.4300
+    tz: Atlantic/Canary
+    country: Spain
+    country_iso2: ES
+    country_iso3: ESP
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: BWh
+    active: true
+
+  - name: Porto
+    lat: 41.1579
+    lon: -8.6291
+    tz: Europe/Lisbon
+    country: Portugal
+    country_iso2: PT
+    country_iso3: PRT
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csb
+    active: true
+
+  - name: Rome
+    lat: 41.8955
+    lon: 12.4823
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Milan
+    lat: 45.4654
+    lon: 9.1859
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Naples
+    lat: 40.8518
+    lon: 14.2681
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Turin
+    lat: 45.0703
+    lon: 7.6869
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Florence
+    lat: 43.7696
+    lon: 11.2558
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Bologna
+    lat: 44.4949
+    lon: 11.3426
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Palermo
+    lat: 38.1157
+    lon: 13.3615
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Venice
+    lat: 45.4408
+    lon: 12.3155
+    tz: Europe/Rome
+    country: Italy
+    country_iso2: IT
+    country_iso3: ITA
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Athens
+    lat: 37.9795
+    lon: 23.7162
+    tz: Europe/Athens
+    country: Greece
+    country_iso2: GR
+    country_iso3: GRC
+    continent: Europe
+    region: Southern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Thessaloniki
+    lat: 40.6401
+    lon: 22.9444
+    tz: Europe/Athens
+    country: Greece
+    country_iso2: GR
+    country_iso3: GRC
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Heraklion
+    lat: 35.3387
+    lon: 25.1442
+    tz: Europe/Athens
+    country: Greece
+    country_iso2: GR
+    country_iso3: GRC
+    continent: Europe
+    region: Southern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  # ---------------------------------------------------------------------------
+  # Balkans + Southeast (10)
+  # ---------------------------------------------------------------------------
+  - name: Istanbul
+    lat: 41.0138
+    lon: 28.9497
+    tz: Europe/Istanbul
+    country: Turkey
+    country_iso2: TR
+    country_iso3: TUR
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Ankara
+    lat: 39.9334
+    lon: 32.8597
+    tz: Europe/Istanbul
+    country: Turkey
+    country_iso2: TR
+    country_iso3: TUR
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: true
+    climate_zone: BSk
+    active: true
+
+  - name: Izmir
+    lat: 38.4237
+    lon: 27.1428
+    tz: Europe/Istanbul
+    country: Turkey
+    country_iso2: TR
+    country_iso3: TUR
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Belgrade
+    lat: 44.8048
+    lon: 20.4781
+    tz: Europe/Belgrade
+    country: Serbia
+    country_iso2: RS
+    country_iso3: SRB
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: true
+    climate_zone: Dfb
+    active: true
+
+  - name: Novi Sad
+    lat: 45.2671
+    lon: 19.8335
+    tz: Europe/Belgrade
+    country: Serbia
+    country_iso2: RS
+    country_iso3: SRB
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: false
+    climate_zone: Cfa
+    active: true
+
+  - name: Split
+    lat: 43.5081
+    lon: 16.4402
+    tz: Europe/Zagreb
+    country: Croatia
+    country_iso2: HR
+    country_iso3: HRV
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Dubrovnik
+    lat: 42.6507
+    lon: 18.0944
+    tz: Europe/Zagreb
+    country: Croatia
+    country_iso2: HR
+    country_iso3: HRV
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: false
+    climate_zone: Csa
+    active: true
+
+  - name: Nicosia
+    lat: 35.1856
+    lon: 33.3823
+    tz: Asia/Nicosia
+    country: Cyprus
+    country_iso2: CY
+    country_iso3: CYP
+    continent: Europe
+    region: Southeastern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Valletta
+    lat: 35.9042
+    lon: 14.5189
+    tz: Europe/Malta
+    country: Malta
+    country_iso2: MT
+    country_iso3: MLT
+    continent: Europe
+    region: Southern Europe
+    is_capital: true
+    climate_zone: Csa
+    active: true
+
+  - name: Andorra la Vella
+    lat: 42.5078
+    lon: 1.5211
+    tz: Europe/Andorra
+    country: Andorra
+    country_iso2: AD
+    country_iso3: AND
+    continent: Europe
+    region: Southern Europe
+    is_capital: true
+    climate_zone: ET
+    active: true

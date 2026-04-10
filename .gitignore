@@ -1,5 +1,6 @@
-.bruin.yml
-logs/runs
-logs/*.log
-__pycache__/
-*.py[cod]
+CLAUDE.md
+project_context.md
+
+.env
+
+/docs
