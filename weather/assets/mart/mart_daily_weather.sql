@@ -5,7 +5,6 @@ depends:
   - core.fact_weather_daily
   - core.dim_cities
   - core.dim_countries
-  - core.dim_calendar
   - core.dim_weather_code
 @bruin */
 

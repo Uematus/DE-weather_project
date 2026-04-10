@@ -3,7 +3,6 @@ name: core.backfill
 connection: postgres_default
 depends:
   - core.fact_weather_daily
-  - mart.daily_weather
 @bruin"""
 
 # Detects and fills gaps in core.fact_weather_daily and mart.daily_weather.
@@ -34,64 +33,52 @@ engine = create_engine(
 
 ############################################################################
 # Gap detection queries
+# Uses EXCEPT to find exact (city, date) pairs missing between layers.
+# This avoids false positives from count-based comparisons.
 ############################################################################
 
-# Months where core has fewer (city × day) rows than stage
+# Months that have at least one (city, date) pair in stage but not in core
 CORE_GAP_SQL = text("""
-    WITH stage_city_days AS (
-        SELECT
-            DATE_TRUNC('month', CAST(measured_at AS DATE))::DATE AS month_start,
-            COUNT(DISTINCT (location_name, CAST(measured_at AS DATE)))  AS city_days
-        FROM stage.weather_hourly
-        GROUP BY 1
-    ),
-    core_city_days AS (
-        SELECT
-            DATE_TRUNC('month', cal.date)::DATE AS month_start,
-            COUNT(*)                             AS city_days
-        FROM core.fact_weather_daily f
-        JOIN core.dim_calendar cal ON cal.id = f.date_id
-        GROUP BY 1
-    )
-    SELECT
-        s.month_start::DATE                                                        AS start_date,
+    SELECT DISTINCT
+        DATE_TRUNC('month', d)::DATE AS start_date,
         LEAST(
-            (s.month_start + INTERVAL '1 month' - INTERVAL '1 day')::DATE,
+            (DATE_TRUNC('month', d) + INTERVAL '1 month' - INTERVAL '1 day')::DATE,
             CURRENT_DATE - 1
-        )                                                                          AS end_date
-    FROM stage_city_days s
-    LEFT JOIN core_city_days c ON c.month_start = s.month_start
-    WHERE COALESCE(c.city_days, 0) < s.city_days
-    ORDER BY s.month_start
+        )                            AS end_date
+    FROM (
+        SELECT location_name AS city, CAST(measured_at AS DATE) AS d
+        FROM stage.weather_hourly
+
+        EXCEPT
+
+        SELECT ci.city_name AS city, cal.date AS d
+        FROM core.fact_weather_daily f
+        JOIN core.dim_calendar cal ON cal.id  = f.date_id
+        JOIN core.dim_cities   ci  ON ci.id   = f.city_id
+    ) gaps
+    ORDER BY start_date
 """)
 
-# Months where mart has fewer rows than core
+# Months that have at least one (city, date) pair in core but not in mart
 MART_GAP_SQL = text("""
-    WITH core_city_days AS (
-        SELECT
-            DATE_TRUNC('month', cal.date)::DATE AS month_start,
-            COUNT(*)                             AS city_days
-        FROM core.fact_weather_daily f
-        JOIN core.dim_calendar cal ON cal.id = f.date_id
-        GROUP BY 1
-    ),
-    mart_city_days AS (
-        SELECT
-            DATE_TRUNC('month', date)::DATE AS month_start,
-            COUNT(*)                        AS city_days
-        FROM mart.daily_weather
-        GROUP BY 1
-    )
-    SELECT
-        c.month_start::DATE                                                        AS start_date,
+    SELECT DISTINCT
+        DATE_TRUNC('month', d)::DATE AS start_date,
         LEAST(
-            (c.month_start + INTERVAL '1 month' - INTERVAL '1 day')::DATE,
+            (DATE_TRUNC('month', d) + INTERVAL '1 month' - INTERVAL '1 day')::DATE,
             CURRENT_DATE - 1
-        )                                                                          AS end_date
-    FROM core_city_days c
-    LEFT JOIN mart_city_days m ON m.month_start = c.month_start
-    WHERE COALESCE(m.city_days, 0) < c.city_days
-    ORDER BY c.month_start
+        )                            AS end_date
+    FROM (
+        SELECT ci.city_name AS city, cal.date AS d
+        FROM core.fact_weather_daily f
+        JOIN core.dim_calendar cal ON cal.id  = f.date_id
+        JOIN core.dim_cities   ci  ON ci.id   = f.city_id
+
+        EXCEPT
+
+        SELECT city_name AS city, date AS d
+        FROM mart.daily_weather
+    ) gaps
+    ORDER BY start_date
 """)
 
 ############################################################################
@@ -223,8 +210,8 @@ def fill_gaps(layer: str, gap_sql, delete_sql, insert_sql) -> int:
         try:
             with engine.begin() as conn:
                 conn.execute(delete_sql, {"start": start, "end": end})
-                conn.execute(insert_sql, {"start": start, "end": end})
-            print("OK")
+                result = conn.execute(insert_sql, {"start": start, "end": end})
+            print(f"OK ({result.rowcount} rows)")
         except Exception as e:
             print(f"FAIL: {e}")
             failures += 1
