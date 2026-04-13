@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS mart.daily_weather (
 
     -- Grain: 1 day × 1 city
     date                DATE        NOT NULL,   -- relates to PBI Calendar table
-    city_id             TEXT        NOT NULL,
+    city_id             INTEGER     NOT NULL REFERENCES core.dim_cities(id),
 
     -- Weather description (human-readable WMO code)
     weather_description TEXT,

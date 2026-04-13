@@ -59,7 +59,7 @@ CORE_GAP_SQL = text("""
     ORDER BY start_date
 """)
 
-# Months that have at least one (city, date) pair in core but not in mart
+# Months that have at least one (city_id, date) pair in core but not in mart
 MART_GAP_SQL = text("""
     SELECT DISTINCT
         DATE_TRUNC('month', d)::DATE AS start_date,
@@ -68,14 +68,13 @@ MART_GAP_SQL = text("""
             CURRENT_DATE - 1
         )                            AS end_date
     FROM (
-        SELECT ci.city_name AS city, cal.date AS d
+        SELECT f.city_id, cal.date AS d
         FROM core.fact_weather_daily f
-        JOIN core.dim_calendar cal ON cal.id  = f.date_id
-        JOIN core.dim_cities   ci  ON ci.id   = f.city_id
+        JOIN core.dim_calendar cal ON cal.id = f.date_id
 
         EXCEPT
 
-        SELECT city_name AS city, date AS d
+        SELECT city_id, date AS d
         FROM mart.daily_weather
     ) gaps
     ORDER BY start_date
@@ -151,41 +150,33 @@ MART_DELETE_SQL = text("""
 
 MART_INSERT_SQL = text("""
     INSERT INTO mart.daily_weather (
-        date, city_name, latitude, longitude, is_capital, climate_zone,
-        country_name, region, weather_description,
+        date, city_id, weather_description,
         temp_avg, temp_min, temp_max, apparent_temp_avg,
         precipitation_sum, snowfall_sum, sunshine_hours,
-        wind_speed_avg, wind_gusts_max, humidity_avg,
+        wind_speed_avg, wind_gusts_max, humidity_avg, pressure_avg,
         is_frost_day, is_hot_day, is_rainy_day, is_snowy_day
     )
     SELECT
         cal.date,
-        ci.city_name,
-        ci.latitude,
-        ci.longitude,
-        ci.is_capital,
-        ci.climate_zone,
-        co.country_name,
-        co.region,
-        wc.description             AS weather_description,
+        f.city_id,
+        wc.description              AS weather_description,
         f.temp_avg,
         f.temp_min,
         f.temp_max,
         f.apparent_temp_avg,
         f.precipitation_sum,
         f.snowfall_sum,
-        f.sunshine_duration_hours  AS sunshine_hours,
-        f.avg_wind_speed_10m       AS wind_speed_avg,
-        f.max_wind_gusts           AS wind_gusts_max,
-        f.avg_relative_humidity    AS humidity_avg,
+        f.sunshine_duration_hours   AS sunshine_hours,
+        f.avg_wind_speed_10m        AS wind_speed_avg,
+        f.max_wind_gusts            AS wind_gusts_max,
+        f.avg_relative_humidity     AS humidity_avg,
+        f.avg_pressure_msl          AS pressure_avg,
         f.is_frost_day,
         f.is_hot_day,
         f.is_rainy_day,
         f.is_snowy_day
     FROM core.fact_weather_daily f
     JOIN core.dim_calendar      cal ON cal.id  = f.date_id
-    JOIN core.dim_cities        ci  ON ci.id   = f.city_id
-    JOIN core.dim_countries     co  ON co.id   = ci.country_id
     LEFT JOIN core.dim_weather_code wc ON wc.id = f.dominant_weather_code_id
     WHERE cal.date BETWEEN CAST(:start AS DATE) AND CAST(:end AS DATE)
 """)

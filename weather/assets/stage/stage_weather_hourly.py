@@ -59,7 +59,6 @@ HOURLY_VARS = [
 ]
 
 API_URL       = "https://archive-api.open-meteo.com/v1/archive"
-BACKFILL_MODE = os.environ.get("BACKFILL", "0") == "1"
 HISTORY_START = int(os.environ.get("HISTORY_START", "2010"))
 
 # Seconds to sleep between monthly API calls (respects ~1 req/sec burst limit)
@@ -96,6 +95,18 @@ class DailyLimitExceeded(Exception):
 # 5. API helpers
 ############################################################################
 
+def _is_daily_limit(resp: requests.Response) -> bool:
+    """Check if response indicates daily API quota exhaustion (any 4xx)."""
+    if resp.status_code < 400 or resp.status_code >= 500:
+        return False
+    try:
+        body = resp.json().get("reason", "")
+    except Exception:
+        body = resp.text
+    body_lower = body.lower()
+    return "daily" in body_lower and ("limit" in body_lower or "exceeded" in body_lower)
+
+
 def fetch_period(loc: dict, start: str, end: str) -> pd.DataFrame:
     params = {
         "latitude":           loc["lat"],
@@ -111,15 +122,11 @@ def fetch_period(loc: dict, start: str, end: str) -> pd.DataFrame:
     }
     resp = requests.get(API_URL, params=params, timeout=60)
 
+    if _is_daily_limit(resp):
+        body = resp.text[:200]
+        raise DailyLimitExceeded(body)
+
     if resp.status_code == 429:
-        body = ""
-        try:
-            body = resp.json().get("reason", "")
-        except Exception:
-            body = resp.text
-        # Distinguish daily quota exhaustion from burst limiting
-        if "daily" in body.lower() or "exceeded" in body.lower():
-            raise DailyLimitExceeded(body)
         raise requests.HTTPError(response=resp)
 
     resp.raise_for_status()
@@ -231,7 +238,6 @@ def get_pending_chunks(yesterday: date) -> list:
     fully loaded. A chunk is 'done' when every day in it has a 'success'
     entry in control.load_log for that city.
     """
-    # Load all successful (city, date) pairs from log into a set — fast lookup
     with engine.connect() as conn:
         rows = conn.execute(text("""
             SELECT city_name, run_date
@@ -244,7 +250,6 @@ def get_pending_chunks(yesterday: date) -> list:
     pending = []
     for loc in LOCATIONS:
         for month_start, month_end in iter_months(HISTORY_START, yesterday):
-            # Check if every day in this month is already logged
             d = month_start
             complete = True
             while d <= month_end:
@@ -259,77 +264,91 @@ def get_pending_chunks(yesterday: date) -> list:
 
 
 ############################################################################
-# 8. Main
+# 8. Main — always: incremental first, then backfill
 ############################################################################
 
-yesterday = date.today() - timedelta(days=1)
-failures  = []
+yesterday    = date.today() - timedelta(days=1)
+hard_failures = []          # real errors (DB, network, bad data)
+daily_limit   = False       # set True when API quota is hit
 
-# ── BACKFILL ────────────────────────────────────────────────────────────────
-if BACKFILL_MODE:
+# ── PHASE 1: INCREMENTAL (yesterday) ──────────────────────────────────────
+start = os.environ.get("BRUIN_START_DATE", yesterday.isoformat())
+end   = os.environ.get("BRUIN_END_DATE",   yesterday.isoformat())
+print(f"[INCREMENTAL] {len(LOCATIONS)} cities for {start} → {end}")
+
+incremental_ok = 0
+
+for loc in LOCATIONS:
+    if daily_limit:
+        print(f"  [SKIP] {loc['name']} — daily limit already reached")
+        continue
+
+    try:
+        df = fetch_with_retry(loc, start, end)
+        upsert_chunk(df, loc["name"], start, end)
+        log_days(start, end, loc["name"], "success")
+        incremental_ok += 1
+        print(f"  [OK] {loc['name']} — {len(df)} rows")
+
+    except DailyLimitExceeded as e:
+        daily_limit = True
+        print(f"  [DAILY LIMIT] {loc['name']}: {e}")
+        print(f"  [DAILY LIMIT] Skipping remaining cities.")
+
+    except Exception as e:
+        print(f"  [FAIL] {loc['name']}: {e}")
+        hard_failures.append({"phase": "incremental", "city": loc["name"], "error": str(e)})
+        log_days(start, end, loc["name"], "failed", error_msg=str(e))
+
+print(f"[INCREMENTAL DONE] OK: {incremental_ok}/{len(LOCATIONS)}")
+
+# ── PHASE 2: BACKFILL (history) ───────────────────────────────────────────
+if daily_limit:
+    print(f"\n[BACKFILL] Skipped — daily API limit already reached.")
+else:
     pending = get_pending_chunks(yesterday)
 
     if not pending:
-        print("[BACKFILL] All chunks already loaded. Nothing to do.")
-        sys.exit(0)
+        print(f"\n[BACKFILL] All chunks already loaded. Nothing to do.")
+    else:
+        total = len(pending)
+        print(f"\n[BACKFILL] {total} monthly chunks remaining "
+              f"(~{total * SLEEP_BETWEEN_CHUNKS // 60} min at {SLEEP_BETWEEN_CHUNKS}s/chunk).")
 
-    total_chunks = len(pending)
-    print(f"[BACKFILL] {total_chunks} monthly chunks remaining "
-          f"(~{total_chunks * SLEEP_BETWEEN_CHUNKS // 60} min at {SLEEP_BETWEEN_CHUNKS}s/chunk).")
+        for idx, (loc, b_start, b_end) in enumerate(pending, 1):
+            print(f"  [{idx}/{total}] {loc['name']} {b_start[:7]}", end=" ... ", flush=True)
+            try:
+                df = fetch_with_retry(loc, b_start, b_end)
+                upsert_chunk(df, loc["name"], b_start, b_end)
+                log_days(b_start, b_end, loc["name"], "success", rows_per_day=24)
+                print(f"{len(df)} rows OK")
 
-    for idx, (loc, start, end) in enumerate(pending, 1):
-        print(f"  [{idx}/{total_chunks}] {loc['name']} {start[:7]}", end=" ... ", flush=True)
-        try:
-            df = fetch_with_retry(loc, start, end)
-            upsert_chunk(df, loc["name"], start, end)
-            log_days(start, end, loc["name"], "success", rows_per_day=24)
-            print(f"{len(df)} rows OK")
+            except DailyLimitExceeded as e:
+                print(f"\n[DAILY LIMIT] Open-Meteo quota exhausted: {e}")
+                print(f"[BACKFILL] Progress saved. {total - idx} chunks remain.")
+                break
 
-        except DailyLimitExceeded as e:
-            print(f"\n[DAILY LIMIT] Open-Meteo quota exhausted: {e}")
-            print(f"[BACKFILL] Stopping. Progress saved to control.load_log.")
-            print(f"[BACKFILL] {total_chunks - idx} chunks remain — will resume on next run.")
-            sys.exit(0)  # not a failure — cron will continue tomorrow
+            except Exception as e:
+                print(f"FAIL: {e}")
+                hard_failures.append({"phase": "backfill", "city": loc["name"],
+                                      "period": b_start, "error": str(e)})
+                log_days(b_start, b_end, loc["name"], "failed", error_msg=str(e))
 
-        except Exception as e:
-            print(f"FAIL: {e}")
-            failures.append({"city": loc["name"], "period": start, "error": str(e)})
-            log_days(start, end, loc["name"], "failed", error_msg=str(e))
-            # continue to next chunk — don't abort the whole backfill
+            time.sleep(SLEEP_BETWEEN_CHUNKS)
 
-        time.sleep(SLEEP_BETWEEN_CHUNKS)
+        print(f"[BACKFILL DONE]")
 
-    print(f"\n[BACKFILL DONE] All chunks processed.")
-
-# ── INCREMENTAL ─────────────────────────────────────────────────────────────
-else:
-    start = os.environ.get("BRUIN_START_DATE", yesterday.isoformat())
-    end   = os.environ.get("BRUIN_END_DATE",   yesterday.isoformat())
-    print(f"[INCREMENTAL] {len(LOCATIONS)} cities for {start} → {end}")
-
-    for loc in LOCATIONS:
-        try:
-            df = fetch_with_retry(loc, start, end)
-            upsert_chunk(df, loc["name"], start, end)
-            log_days(start, end, loc["name"], "success")
-            print(f"  [OK] {loc['name']} — {len(df)} rows")
-
-        except DailyLimitExceeded as e:
-            # Incremental hitting daily limit is unexpected but handle gracefully
-            print(f"  [DAILY LIMIT] {loc['name']}: {e}")
-            failures.append({"city": loc["name"], "error": str(e)})
-            log_days(start, end, loc["name"], "failed", error_msg=str(e))
-
-        except Exception as e:
-            print(f"  [FAIL] {loc['name']}: {e}")
-            failures.append({"city": loc["name"], "error": str(e)})
-            log_days(start, end, loc["name"], "failed", error_msg=str(e))
-
-    print(f"[INCREMENTAL DONE] Total cities: {len(LOCATIONS)}, failures: {len(failures)}")
-
-# ── EXIT ─────────────────────────────────────────────────────────────────────
-if failures:
-    print(f"\n[ERROR] {len(failures)} failure(s):")
-    for f in failures:
+# ── EXIT ──────────────────────────────────────────────────────────────────
+if hard_failures:
+    print(f"\n[WARN] {len(hard_failures)} hard failure(s):")
+    for f in hard_failures:
         print(f"  - {f}")
-    sys.exit(1)
+    # Fail only if incremental loaded nothing — downstream needs at least some data
+    if incremental_ok == 0:
+        print("[FATAL] No incremental data loaded. Failing pipeline.")
+        sys.exit(1)
+    else:
+        print("[INFO] Incremental partially succeeded — continuing pipeline.")
+
+print("[DONE] stage.weather_hourly finished successfully.")
+sys.exit(0)
