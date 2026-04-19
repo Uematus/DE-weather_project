@@ -380,7 +380,7 @@ Each (city, metric) pair gets its own Prophet model. The model is fit on up to 2
 
 Power BI Service, Import mode, direct PostgreSQL connection. Current version: **v1.1** (dark theme).
 
-**[Open the live report →](https://app.powerbi.com/view?r=eyJrIjoiYTMxYmViMzMtMTBmMi00ZTAzLTkwZDctY2JjM2IwZDkzY2Q0IiwidCI6Ijk4MDVhYWI3LWFjNjMtNGQxMC04YmY4LTJmOWMxNWQyZGNlMiJ9)** (published to Power BI Service, no sign-in required).
+**[Open the live report →](https://app.powerbi.com/view?r=eyJrIjoiNDYzZGNlMjctOWU4Ny00YmEwLTkwMjUtZDYzMjlmMjRmODMzIiwidCI6Ijk4MDVhYWI3LWFjNjMtNGQxMC04YmY4LTJmOWMxNWQyZGNlMiJ9)** (published to Power BI Service, no sign-in required).
 
 What is on the page:
 
