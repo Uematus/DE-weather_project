@@ -1,5 +1,5 @@
 -- =============================================================================
--- 02_control_tables.sql
+-- 05_control_tables.sql
 -- Run once before starting Bruin. Pipeline observability: load log + gap view.
 -- =============================================================================
 

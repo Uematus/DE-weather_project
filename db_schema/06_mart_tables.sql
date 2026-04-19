@@ -48,3 +48,49 @@ CREATE INDEX IF NOT EXISTS idx_mart_daily_weather_date
 
 CREATE INDEX IF NOT EXISTS idx_mart_daily_weather_city
     ON mart.daily_weather (city_id);
+
+
+-- =============================================================================
+-- mart.weather_forecast
+-- Populated daily by the Bruin asset mart.weather_forecast (Prophet-based).
+-- Grain: 1 row = 1 (forecast_run_date, target_date, city_id).
+-- Insert-only — every daily run appends 7 forward-looking rows per city.
+-- History is kept for forecast-accuracy analysis.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS mart.weather_forecast (
+
+    forecast_run_date   DATE        NOT NULL,   -- the day the forecast was produced
+    target_date         DATE        NOT NULL,   -- the day being predicted
+    city_id             INTEGER     NOT NULL REFERENCES core.dim_cities(id),
+    horizon_days        SMALLINT    NOT NULL,   -- target_date - forecast_run_date (1..7)
+
+    -- Point forecasts (Prophet yhat) for all 8 metrics
+    temp_avg            FLOAT,
+    temp_min            FLOAT,
+    temp_max            FLOAT,
+    precipitation_sum   FLOAT,
+    sunshine_hours      FLOAT,
+    humidity_avg        FLOAT,
+    pressure_avg        FLOAT,
+    wind_speed_avg      FLOAT,
+
+    -- Confidence intervals (yhat_lower / yhat_upper) — only for two key metrics
+    temp_avg_lower           FLOAT,
+    temp_avg_upper           FLOAT,
+    precipitation_sum_lower  FLOAT,
+    precipitation_sum_upper  FLOAT,
+
+    loaded_at           TIMESTAMP   NOT NULL DEFAULT now(),
+
+    PRIMARY KEY (forecast_run_date, target_date, city_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mart_weather_forecast_target
+    ON mart.weather_forecast (target_date);
+
+CREATE INDEX IF NOT EXISTS idx_mart_weather_forecast_city
+    ON mart.weather_forecast (city_id);
+
+CREATE INDEX IF NOT EXISTS idx_mart_weather_forecast_run
+    ON mart.weather_forecast (forecast_run_date);

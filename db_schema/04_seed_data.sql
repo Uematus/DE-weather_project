@@ -1,6 +1,6 @@
 -- =============================================================================
--- 05_seed_data.sql
--- Run once after 03_core_dimensions.sql and 04_core_facts.sql.
+-- 04_seed_data.sql
+-- Run once after 02_core_dimensions.sql and 03_core_facts.sql.
 -- Populates static dimensions: dim_calendar, dim_time, dim_wind_direction,
 -- dim_weather_code.
 -- Dynamic dimensions (dim_cities, dim_countries) are populated by Bruin assets.

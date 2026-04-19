@@ -1,5 +1,5 @@
 -- =============================================================================
--- 04_core_facts.sql
+-- 03_core_facts.sql
 -- Run once before starting Bruin. Creates core fact tables.
 -- fact_weather_hourly: partitioned by year (RANGE on date_id).
 -- fact_weather_daily:  not partitioned (max ~165K rows for 30 cities × 15 years).

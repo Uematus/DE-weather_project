@@ -1,129 +1,160 @@
 # European Weather Analytics Pipeline
 
-End-to-end batch data pipeline collecting hourly weather data for 95 European cities from 2010 to present.
+A batch data pipeline that loads hourly weather for 95 European cities from 2010 onwards into PostgreSQL, shows it in Power BI, and produces a 7-day forecast every day.
 
-Built as a capstone project for [DataTalks.Club Data Engineering Zoomcamp 2026](https://github.com/DataTalksClub/data-engineering-zoomcamp).
+Built as the capstone project for [DataTalks.Club Data Engineering Zoomcamp 2026](https://github.com/DataTalksClub/data-engineering-zoomcamp).
 
 ---
 
-## Problem Description
+## Problem
 
-Weather data is collected by thousands of stations, but it is rarely structured for analysis across many cities and years at once. This project builds a reproducible pipeline that:
+Weather stations record millions of observations every day, but the data is spread across many formats and is hard to compare across cities or years. This project builds one place where you can:
 
-- Collects **hourly weather observations** for 95 European cities from 2010 to present
-- Structures data in a **Kimball star schema** (PostgreSQL) for analytical queries
-- Tracks **39 variables** per city-hour: temperature, precipitation, wind speed, solar radiation, soil moisture, and more
+- Load and keep hourly weather for 95 European cities from 2010 to today.
+- Query any city, any day, any metric through a PostgreSQL star schema.
+- See trends, extremes, and rankings on a Power BI dashboard.
+- Get a 7-day forecast for every city, refreshed every night.
 
-**Questions the data can answer:**
-- Which cities have the most frost days per year?
-- How do temperature extremes differ across Europe's climate zones?
-- What is the trend in sunshine duration over 15 years?
+---
+
+## What the project delivers
+
+| Piece | Description |
+|---|---|
+| Ingestion | Daily load of yesterday's data for 95 European cities from the Open-Meteo Historical API. The same script also fills history back to 2010 whenever the API quota allows. |
+| Data warehouse | PostgreSQL 16 with four schemas: `stage` (raw hourly), `core` (Kimball star), `mart` (Power BI-ready), `control` (load log and gap view). |
+| Transformations | Bruin CLI assets: SCD1 dimensions, one partitioned hourly fact table, one daily aggregate, two mart tables. |
+| Forecast | A Bruin Python asset runs Facebook Prophet every night and writes a 7-day forecast into `mart.weather_forecast`. Rows are never deleted, so we can later compare past forecasts to what actually happened. |
+| Dashboard | Power BI with five KPI cards (with year-over-year deltas), a dynamic line chart, an extreme-weather ranking, a climate-group scatter map, and an map. |
+| Reproducibility | Everything runs in Docker Compose. One `docker compose up -d` brings the whole stack up. |
+| Observability | `control.load_log` records every load attempt. `control.v_date_gaps` lists any (date, city, layer) combination that is still missing. |
 
 ---
 
 ## Architecture
 
 ```
-Open-Meteo Historical API
-        │
-        ▼
-stage.weather_hourly        ← Python asset (Bruin). Raw hourly data, all 39 variables.
-        │                      Upsert by (city, date range). Logs every load to control.load_log.
-        │
-        ├──► core.dim_countries    (SCD1 merge from cities.yml)
-        ├──► core.dim_cities       (SCD1 merge from stage + cities.yml metadata)
-        ├──► core.dim_weather_code (SCD1 merge — new WMO codes from stage)
-        ├──► core.fact_weather_hourly  (partitioned by year, 2010–2030)
-        └──► core.fact_weather_daily   (aggregated from stage directly)
-
-Static dimensions — seeded once, not managed by Bruin:
-        core.dim_calendar        (1950–2050, id = YYYYMMDD integer)
-        core.dim_time            (00:00–23:59 per minute, id = HHMM integer)
-        core.dim_wind_direction  (16 compass points)
-
-mart.*  ← in progress (Power BI-ready views)
+                                 Open-Meteo Historical API
+                                            │
+                                            ▼
+                                  stage.weather_hourly
+                          (raw hourly data, 39 variables per row)
+                                            │
+             ┌──────────────────────────────┼──────────────────────────┐
+             ▼                              ▼                          ▼
+    core.dim_countries            core.fact_weather_hourly   core.fact_weather_daily
+    core.dim_cities               (partitioned by year)      (1 row / city / day)
+    core.dim_weather_code                                                │
+             │                                                           ▼
+             └────────────────► mart.daily_weather ◄────────────────────┘
+                                (denormalised table, one wide row per
+                                 city × day, consumed by Power BI)
+                                            │
+                                            ▼
+                                  mart.weather_forecast
+                                (7-day forecast, insert-only,
+                                 written daily by Prophet)
+                                            │
+                                            ▼
+                                     Power BI Service
+                                      (Import mode)
 ```
 
+**Static dimensions** (seeded once, never updated by the pipeline):
+`core.dim_calendar` (1950–2050), `core.dim_time`, `core.dim_wind_direction`.
+
+**Why a separate mart layer?** The core star schema is normalised - good for storage, less convenient for BI. `mart.daily_weather` joins the dimensions once and adds text columns (`city_name`, `country_name`, `region`, `is_capital`, `climate_zone`, `weather_description`) so Power BI imports one wide table. Dashboard visuals stay simple and refreshes stay fast.
+
+**Gap filling.** The stage asset always runs in two phases: yesterday first, then any older monthly chunks still missing from `control.load_log`. On top of that, the asset `core.backfill` runs near the end of each pipeline and copies any month that `stage` has but `core` or `mart` does not yet. That is how all four layers stay in sync while the backfill spans many days.
+
 ---
 
-## Tech Stack
+## Tech stack
 
-| Component | Technology |
+| Piece | Tool |
 |---|---|
-| Ingestion + Transformation | [Bruin CLI](https://github.com/bruin-data/bruin) (Python + SQL assets) |
-| Scheduling | System cron on VPS |
-| Storage / Data Warehouse | PostgreSQL 16 (stage / core / mart / control schemas) |
-| Containerization | Docker + Docker Compose |
-| DB Admin UI | pgAdmin 4 |
+| Ingestion and transformation | [Bruin CLI](https://github.com/bruin-data/bruin) (Python and SQL assets) |
+| Forecasting | [Facebook Prophet](https://facebook.github.io/prophet/) - one model per city × metric |
+| Storage | PostgreSQL 16 |
+| Scheduler | System `cron` calling `run_pipeline.sh` |
+| Containers | Docker and Docker Compose |
+| DB admin UI | pgAdmin 4 |
 | Dashboard | Power BI Service (Import mode) |
-| Data Source | [Open-Meteo Historical Weather API](https://archive-api.open-meteo.com/v1/archive) |
+| Data source | [Open-Meteo Historical Weather API](https://archive-api.open-meteo.com/v1/archive) - free, no API key |
 
 ---
 
-## Data Model
+## Data model
 
-All dimensions use **SCD1** (overwrite on change). All core tables source data from `stage` only — no core-to-core data dependencies.
+All `core.dim_*` tables use **SCD1** (overwrite on change). All `core.fact_*` tables source their data from `stage` only - no core-to-core data dependencies.
 
-| Table | Grain | Key type |
+| Table | Grain | Key |
 |---|---|---|
-| `dim_calendar` | one row per day (1950–2050) | `id = YYYYMMDD` integer |
-| `dim_time` | one row per minute (00:00–23:59) | `id = HHMM` integer |
-| `dim_cities` | one row per city | SERIAL |
-| `dim_countries` | one row per country | SERIAL |
-| `dim_weather_code` | one row per WMO weather code | WMO code (SMALLINT) |
-| `dim_wind_direction` | 16 compass directions | SMALLINT 1–16 |
-| `fact_weather_hourly` | 1 hour × 1 city | BIGSERIAL, partitioned by year |
-| `fact_weather_daily` | 1 day × 1 city | SERIAL, UNIQUE(date_id, city_id) |
+| `core.dim_calendar` | 1 day (1950–2050) | `id = YYYYMMDD` |
+| `core.dim_time` | 1 minute (00:00–23:59) | `id = HHMM` |
+| `core.dim_cities` | 1 city | `SERIAL` |
+| `core.dim_countries` | 1 country | `SERIAL` |
+| `core.dim_weather_code` | 1 WMO code | code itself (SMALLINT) |
+| `core.dim_wind_direction` | 16 compass points | SMALLINT 1–16 |
+| `core.fact_weather_hourly` | 1 hour × 1 city | BIGSERIAL, partitioned by year |
+| `core.fact_weather_daily` | 1 day × 1 city | SERIAL, `UNIQUE(date_id, city_id)` |
+| `mart.daily_weather` | 1 day × 1 city | `PRIMARY KEY (date, city_id)` |
+| `mart.weather_forecast` | 1 (forecast_run_date, target_date, city_id) | composite PK, **insert-only** |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 DE-weather_project/
 ├── Dockerfile
 ├── docker-compose.yml
-├── .env                         # not committed — see .env.example
+├── .env                           # not committed - see .env.example
 ├── .env.example
 ├── requirements.txt
-├── run_pipeline.sh
-├── db_schema/                   # DDL scripts — run manually once (infrastructure setup)
-│   ├── 00_schemas.sql           # CREATE SCHEMA: stage, core, mart, control
-│   ├── 01_stage_tables.sql      # stage.weather_hourly
-│   ├── 02_core_dimensions.sql   # all dim_* tables
-│   ├── 03_core_facts.sql        # fact tables + year partitions (1950–2050)
-│   ├── 04_seed_data.sql         # static dims: calendar, time, wind direction, WMO codes
-│   └── 05_control_tables.sql    # control.load_log + control.v_date_gaps view
-├── init-db/                     # auto-executed on first PostgreSQL container start
-└── weather/                     # Bruin pipeline root
+├── run_pipeline.sh                # cron wrapper - edit paths for your host
+├── db_schema/                     # DDL - run once when setting up the DB
+│   ├── 00_schemas.sql
+│   ├── 01_stage_tables.sql
+│   ├── 02_core_dimensions.sql
+│   ├── 03_core_facts.sql
+│   ├── 04_seed_data.sql
+│   ├── 05_control_tables.sql
+│   └── 06_mart_tables.sql
+├── init-db/                       # auto-runs on first PostgreSQL container start
+└── weather/                       # Bruin pipeline root
     ├── .bruin.yml
     ├── pipeline.yml
     └── assets/
         ├── config/
-        │   └── cities.yml       # 95 European cities — single source of truth
+        │   └── cities.yml         # list of cities - single source of truth
         ├── stage/
         │   └── stage_weather_hourly.py
-        └── core/
-            ├── core_dim_countries.py
-            ├── core_dim_cities.py
-            ├── core_dim_weather_code.py
-            ├── core_fact_weather_hourly.sql
-            └── core_fact_weather_daily.sql
+        ├── core/
+        │   ├── core_dim_countries.py
+        │   ├── core_dim_cities.py
+        │   ├── core_dim_weather_code.py
+        │   ├── core_fact_weather_hourly.sql
+        │   ├── core_fact_weather_daily.sql
+        │   └── core_backfill.py          # fills gaps between stage → core → mart
+        └── mart/
+            ├── mart_daily_weather.sql
+            └── mart_weather_forecast.py  # Prophet 7-day forecast
 ```
 
 ---
 
-## How to Reproduce
+## How to reproduce
 
 ### Prerequisites
 
-- VPS or server with **Docker** and **Docker Compose** installed
-- **psql** client available locally (or run DDL from inside the container)
-- Git
+- A host with **Docker** and **Docker Compose** installed.
+- A `psql` client that can reach PostgreSQL.
+- Git.
 
 ---
 
-### Step 1 — Clone the repository
+### Step 1 - Clone the repository
 
 ```bash
 git clone https://github.com/Uematus/DE-weather_project.git
@@ -132,13 +163,13 @@ cd DE-weather_project
 
 ---
 
-### Step 2 — Configure environment
+### Step 2 - Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Fill in `.env`:
 
 ```env
 POSTGRES_DB=weather_db
@@ -156,11 +187,11 @@ PGADMIN_DEFAULT_EMAIL=admin@example.com
 PGADMIN_DEFAULT_PASSWORD=your_pgadmin_password
 ```
 
-`POSTGRES_PORT` is the external port on your server (default 5433). Inside Docker, PostgreSQL always listens on 5432.
+`POSTGRES_PORT` is the port on the host (default 5433). Inside Docker, PostgreSQL always listens on 5432.
 
 ---
 
-### Step 3 — Build and start containers
+### Step 3 - Start the stack
 
 ```bash
 docker compose up -d
@@ -168,17 +199,17 @@ docker compose up -d
 
 This starts three services:
 
-| Service | Description | Access |
+| Service | Role | How to reach it |
 |---|---|---|
 | `db` | PostgreSQL 16 | `localhost:${POSTGRES_PORT}` |
-| `bruin` | Bruin CLI + Python runner | — |
-| `pgadmin` | Database admin UI | `http://<server-ip>:5050` |
+| `bruin` | Bruin CLI and Python runner | `docker exec -it de_bruin bash` |
+| `pgadmin` | DB admin UI | `http://<host-ip>:5050` |
 
 ---
 
-### Step 4 — Initialize the database
+### Step 4 - Initialise the database
 
-Run DDL scripts in order. They create all schemas, tables, partitions, and seed static dimensions.
+Run the DDL files in order. They are idempotent (every `CREATE` uses `IF NOT EXISTS`).
 
 ```bash
 psql -h localhost -p 5433 -U de_user -d weather_db \
@@ -187,20 +218,20 @@ psql -h localhost -p 5433 -U de_user -d weather_db \
   -f db_schema/02_core_dimensions.sql \
   -f db_schema/03_core_facts.sql \
   -f db_schema/04_seed_data.sql \
-  -f db_schema/05_control_tables.sql
+  -f db_schema/05_control_tables.sql \
+  -f db_schema/06_mart_tables.sql
 ```
 
-> **Important:** Keep this order. `05_control_tables.sql` creates a view that references `core.dim_cities`, so it must run last.
-
-> **Note on seed data:** `04_seed_data.sql` populates `dim_calendar` (1950–2050), `dim_time` (per minute), `dim_wind_direction`, and `dim_weather_code` (WMO codes with descriptions). This runs only once and is not updated by the pipeline.
-
-> **Note on partitions:** `03_core_facts.sql` automatically generates year partitions for `fact_weather_hourly` from 1950 to 2050 using a PL/pgSQL loop — no manual statements needed.
+Notes:
+- Keep this order - later files reference tables from earlier ones.
+- `04_seed_data.sql` fills the static dimensions (`dim_calendar` for 1950–2050, `dim_time`, `dim_wind_direction`, `dim_weather_code`). It runs only once.
+- `03_core_facts.sql` creates one yearly partition of `fact_weather_hourly` for every year from 1950 to 2050. No manual partition work is needed until 2050.
 
 ---
 
-### Step 5 — Initialize Bruin git context
+### Step 5 - Initialise the Bruin git context
 
-Bruin CLI requires the pipeline directory to be a git repository.
+Bruin expects its pipeline folder to be a git repo.
 
 ```bash
 docker exec -it de_bruin bash -c "cd /app && git init"
@@ -208,7 +239,7 @@ docker exec -it de_bruin bash -c "cd /app && git init"
 
 ---
 
-### Step 6 — Validate the pipeline
+### Step 6 - Validate the pipeline
 
 ```bash
 docker compose run --rm bruin bruin validate /app
@@ -216,13 +247,13 @@ docker compose run --rm bruin bruin validate /app
 
 ---
 
-### Step 7 — Run the pipeline
+### Step 7 - Run the pipeline
 
 ```bash
 docker compose run --rm bruin bruin run /app
 ```
 
-Bruin resolves dependencies and runs assets in order:
+Bruin reads the `@bruin` header in each asset and runs them in the right order:
 
 ```
 stage.weather_hourly
@@ -232,32 +263,26 @@ stage.weather_hourly
     → core.fact_weather_hourly
     → core.fact_weather_daily
     → mart.daily_weather
-    → core.backfill          ← gap detection and fill for core + mart
+    → core.backfill              # fills gaps between stage → core → mart
+    → mart.weather_forecast      # 7-day Prophet forecast per active city
 ```
 
-By default this loads **yesterday's data** for all cities marked `active: true` in `cities.yml`.
+By default this loads **yesterday's data** for every city marked `active: true` in `cities.yml`.
 
-`core.backfill` runs last and automatically detects months where `stage` has more data than `core` or `mart`, then fills those gaps. This is the key mechanism for keeping all layers in sync during the multi-day backfill process.
+The stage asset also fills old months that are still missing from `control.load_log`. If the Open-Meteo daily quota runs out part-way through a run, the asset exits cleanly (exit code 0) and the next run resumes where it stopped.
 
 ---
 
-### Step 8 — Load historical data (backfill)
+### Step 8 - Historical backfill
 
-The pipeline supports two independent modes:
+There is no separate backfill command. The stage asset runs **incremental first, then backfill** on every invocation:
 
-**Mode 1 — Daily incremental** (via Bruin, runs in cron):
-```bash
-docker exec de_bruin bruin run /app
-```
-Loads yesterday's data for all active cities. This is the normal daily operation.
+1. Load yesterday for every active city.
+2. Find monthly chunks (2010 → yesterday) that do not yet have a successful entry in `control.load_log` for every day, and load them.
+3. Stop cleanly when the Open-Meteo daily quota (around 10,000 requests/day on the free tier) is hit.
 
-**Mode 2 — Backfill** (directly via Python, bypasses Bruin):
-```bash
-docker exec de_bruin bash -c "BACKFILL=1 python /app/assets/stage/stage_weather_hourly.py"
-```
-Reads `control.load_log`, finds all monthly chunks not yet loaded from 2010 to yesterday, and fetches them one by one. When the Open-Meteo daily API limit is reached, the script exits cleanly (exit code 0). Run it again the next day — it resumes from where it stopped.
+Check progress:
 
-**Check stage backfill progress:**
 ```bash
 docker exec de_postgres psql -U de_user -d weather_db -c \
   "SELECT city_name, COUNT(*) AS missing_days
@@ -266,95 +291,144 @@ docker exec de_postgres psql -U de_user -d weather_db -c \
    GROUP BY city_name
    ORDER BY city_name;"
 ```
-When the query returns 0 rows, stage backfill is complete.
 
-**Core and mart gaps are filled automatically** by `core.backfill` on every pipeline run — no separate command needed. To check how far core/mart have caught up:
+When this returns 0 rows, the stage layer is fully loaded.
+
+Core and mart gaps are filled automatically by `core.backfill` on every pipeline run - no extra step is needed.
+
+To see how far the daily mart has caught up:
+
 ```bash
 docker exec de_postgres psql -U de_user -d weather_db -c \
-  "SELECT
-     DATE_TRUNC('month', date)::DATE AS month,
-     COUNT(DISTINCT city_name)       AS cities_loaded
+  "SELECT DATE_TRUNC('month', date)::DATE AS month,
+          COUNT(DISTINCT city_id)         AS cities
    FROM mart.daily_weather
-   GROUP BY 1
-   ORDER BY 1;"
+   GROUP BY 1 ORDER BY 1;"
 ```
 
 ---
 
-### Step 9 — Set up cron
+### Step 9 - Schedule with cron
 
-Make the pipeline script executable:
+`run_pipeline.sh` is a small wrapper around `docker exec de_bruin bruin run /app`. **Edit the two paths at the top of the script** (`COMPOSE_DIR`, `LOG_DIR`) so they match where you cloned the repo, then:
+
 ```bash
 chmod +x run_pipeline.sh
 mkdir -p ~/logs
-```
 
-Open crontab:
-```bash
 crontab -e
 ```
 
-Add these two jobs:
-```
-# Daily incremental pipeline — runs at 08:00 every day
-0 8 * * * docker exec de_bruin bruin run /app >> ~/logs/weather_pipeline.log 2>&1
+Add one line - the pipeline runs at 08:00, which matches the schedule declared in `weather/pipeline.yml`:
 
-# Backfill — runs at 02:00, remove this line when backfill is complete
-0 2 * * * docker exec de_bruin bash -c "BACKFILL=1 python /app/assets/stage/stage_weather_hourly.py" >> ~/logs/weather_backfill.log 2>&1
+```
+0 8 * * * /home/USER/run_pipeline.sh >> /home/USER/logs/pipeline.log 2>&1
 ```
 
-Remove the backfill cron line when `control.v_date_gaps` returns 0 rows.
+Replace `/home/USER/...` with your actual paths.
 
 ---
 
-## Pipeline Operations Reference
+## Operations reference
 
 | Task | Command |
 |---|---|
-| Run full pipeline | `docker compose run --rm bruin bruin run /app` |
-| Run single asset | `docker compose run --rm bruin bruin run /app --asset stage.weather_hourly` |
-| Run backfill manually | `docker exec de_bruin bash -c "BACKFILL=1 python /app/assets/stage/stage_weather_hourly.py"` |
+| Run the full pipeline | `docker compose run --rm bruin bruin run /app` |
+| Run one asset | `docker compose run --rm bruin bruin run /app --asset stage.weather_hourly` |
+| Run only the forecast | `docker compose run --rm bruin bruin run /app --asset mart.weather_forecast` |
+| Validate the pipeline | `docker compose run --rm bruin bruin validate /app` |
 | Check data gaps | `docker exec de_postgres psql -U de_user -d weather_db -c "SELECT * FROM control.v_date_gaps LIMIT 20;"` |
-| Shell into Bruin container | `docker exec -it de_bruin bash` |
-| Shell into PostgreSQL | `docker exec -it de_postgres psql -U de_user -d weather_db` |
-| View pipeline logs | `tail -f ~/logs/weather_pipeline.log` |
-| Restart all services | `docker compose restart` |
+| Check today's forecast | `docker exec de_postgres psql -U de_user -d weather_db -c "SELECT city_id, target_date, horizon_days, temp_avg, precipitation_sum FROM mart.weather_forecast WHERE forecast_run_date = CURRENT_DATE ORDER BY city_id, horizon_days LIMIT 30;"` |
+| Shell into the Bruin container | `docker exec -it de_bruin bash` |
+| Open a `psql` session | `docker exec -it de_postgres psql -U de_user -d weather_db` |
+| Watch the cron log | `tail -f ~/logs/pipeline.log` |
+| Restart the stack | `docker compose restart` |
 
 ---
 
 ## Observability
 
-The `control` schema tracks every load attempt:
+The `control` schema tracks every load attempt.
 
-| Object | Description |
+| Object | What it does |
 |---|---|
-| `control.load_log` | One row per (date, city, layer). Stores status, row count, expected rows, error message. |
-| `control.v_date_gaps` | View showing all missing (date, city, layer) combinations. Zero rows = pipeline healthy. |
+| `control.load_log` | One row per (run_date, city, layer). Stores `status`, rows loaded, expected rows, error message. |
+| `control.v_date_gaps` | A view that lists every (date, city, layer) combination with no successful load. When it returns 0 rows, the pipeline is fully caught up. |
 
 ---
 
-## City Configuration
+## Forecast table
 
-`weather/assets/config/cities.yml` is the single source of truth for all city metadata:
-- Which cities are loaded (`active: true/false`)
-- Country, ISO codes, continent, region
-- `is_capital`, `climate_zone`
+`mart.weather_forecast` is **insert-only**. Every daily run appends up to `active_cities × 7` rows - 7 horizons per active city. Previous runs are never deleted, so we can later compare past forecasts to what actually happened.
 
-To disable a city, set `active: false` — no code changes needed.
+| Column | Meaning |
+|---|---|
+| `forecast_run_date` | The day the model produced the forecast. |
+| `target_date` | The day being predicted. |
+| `horizon_days` | `target_date - forecast_run_date` (1 .. 7). |
+| `city_id` | FK → `core.dim_cities`. |
+| 8 metric columns | Point forecast (`yhat`) for `temp_avg`, `temp_min`, `temp_max`, `precipitation_sum`, `sunshine_hours`, `humidity_avg`, `pressure_avg`, `wind_speed_avg`. |
+| `*_lower` / `*_upper` | 80 % confidence interval - only for `temp_avg` and `precipitation_sum`. |
 
----
+Each (city, metric) pair gets its own Prophet model. The model is fit on up to 2 years of daily history from `core.fact_weather_daily` and predicts 7 days forward. Yearly seasonality is on; weekly and daily are off (weather has no weekday pattern).
 
-## Data Source
-
-[Open-Meteo Historical Weather API](https://archive-api.open-meteo.com/v1/archive) — free, no API key required.
-
-- **Coverage:** 95 European cities, 2010–present
-- **Variables:** 39 hourly weather variables (temperature, humidity, precipitation, wind, radiation, soil conditions, WMO weather code, and more)
-- **Rate limits:** ~1 request/second burst, ~10,000 requests/day on free tier
-- **Backfill strategy:** monthly chunks (~720 rows each), progress saved in `control.load_log`
+> **The forecast is not yet visualised in Power BI.** The table is populated every day, but the dashboard does not read from it yet. Forecast vs actuals, horizon sensitivity, and accuracy tracking will be added in a later iteration.
 
 ---
 
 ## Dashboard
 
-Power BI Service (Import mode, direct PostgreSQL connection) — **in progress**.
+Power BI Service, Import mode, direct PostgreSQL connection. Current version: **v1.1** (dark theme).
+
+**[Open the live report →](https://app.powerbi.com/view?r=eyJrIjoiYTMxYmViMzMtMTBmMi00ZTAzLTkwZDctY2JjM2IwZDkzY2Q0IiwidCI6Ijk4MDVhYWI3LWFjNjMtNGQxMC04YmY4LTJmOWMxNWQyZGNlMiJ9)** (published to Power BI Service, no sign-in required).
+
+What is on the page:
+
+- **Title** - "European Weather Observatory".
+- **Five KPI cards** - Avg Temperature, Total Precipitation, Avg Pressure, Sunshine Hours, Rainy Days, each with a year-over-year delta.
+- **Chart metric switcher** - Avg temperature | Total precipitation | Avg pressure. Drives the dynamic line chart and the map title.
+- **Ranking metric switcher** - Hot days % | Frost days % | Rainy days %. Drives the ranking visual.
+- **Dynamic line chart** - Current vs Previous period, with a Month / Quarter / Year period switcher.
+- **Ranking block** - "Ranking by Region / Country / City", shows the selected extreme-day percentage plus Max temp, Min temp, and Max wind gusts.
+- **Climate Map (scatter)** - X = Avg temperature, Y = Total precipitation, bubble size = Avg humidity, colour = climate group (six human-readable groups collapsed from ten Köppen codes). A "Capitals only" toggle limits the plot to around 38 capital cities for readability.
+- **ArcGIS map** - synced with the chart metric switcher.
+- **Filters panel** - Period range, Region / Country / City tree, Climate zone slicer.
+
+Data model inside Power BI: one fact table `mart.daily_weather`, the dimensions `core.dim_cities` and `core.dim_countries`, plus a Power BI-side calendar.
+
+---
+
+## Data source
+
+[Open-Meteo Historical Weather API](https://archive-api.open-meteo.com/v1/archive) - free, no API key required.
+
+- **Coverage:** 95 European cities, 2010 onwards.
+- **Variables:** 39 hourly weather variables (temperature, humidity, precipitation, wind, radiation, soil conditions, WMO weather code, and more).
+- **Rate limits:** roughly 1 request per second burst, around 10,000 requests per day on the free tier.
+- **Backfill strategy:** monthly chunks, progress stored in `control.load_log` so the pipeline resumes cleanly after the daily quota resets.
+
+---
+
+## Known limits
+
+- **API daily quota.** When the Open-Meteo free-tier quota is reached, the stage asset catches the response, logs `[DAILY LIMIT]`, exits cleanly (exit code 0), and waits for the next day to continue. The rest of the pipeline still runs on whatever was loaded.
+- **Forecast needs data.** The forecast reads `core.fact_weather_daily`. Cities with less than 60 days of history in that table are skipped for the current run and picked up automatically once history grows.
+- **One Prophet model per (city, metric).** Roughly 480 fits per run take several minutes and are CPU-bound. If you run the pipeline on a small host, look at the top of `weather/assets/mart/mart_weather_forecast.py` - you can change `HORIZON_DAYS`, `HISTORY_YEARS_MAX`, `UNCERTAINTY_SAMPLES_*`, or `GC_EVERY_N_CITIES` to reduce the load. Thread pinning (`OMP_NUM_THREADS=1` and friends) is already set so Stan does not spawn extra threads.
+- **Partitions through 2050.** `fact_weather_hourly` has yearly partitions from 1950 to 2050. If the project lives past 2050, add partitions for the new years.
+- **`run_pipeline.sh` paths.** The paths inside the script are placeholders. Edit them for your host before adding the script to cron.
+
+---
+
+## Capstone rubric
+
+This project targets the evaluation criteria of the DataTalks.Club DE Zoomcamp capstone.
+
+| Criterion | Where to look |
+|---|---|
+| Problem description | The "Problem" section at the top. |
+| Cloud / infrastructure | Docker and Docker Compose, deployable on any VPS. See `Dockerfile` and `docker-compose.yml`. |
+| Data ingestion (batch) | `stage.weather_hourly` - cron-scheduled, with quota handling and a monthly-chunk backfill. |
+| Data warehouse | PostgreSQL 16 with four schemas (`stage` / `core` / `mart` / `control`) and a Kimball star schema in `core`. |
+| Transformations | Bruin SQL and Python assets: SCD1 dimensions, hourly partitioned fact, daily aggregate, mart tables, and the Prophet forecast. |
+| Dashboard | Power BI v1.1 - see the "Dashboard" section. |
+| Reproducibility | `docker compose up -d` plus the seven DDL files. Full steps in "How to reproduce". |

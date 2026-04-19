@@ -1,7 +1,7 @@
 -- =============================================================================
--- 03_core_dimensions.sql
+-- 02_core_dimensions.sql
 -- Run once before starting Bruin. Creates all core dimension tables.
--- Data is populated by 05_seed_data.sql (static dims) and Bruin assets (dynamic dims).
+-- Data is populated by 04_seed_data.sql (static dims) and Bruin assets (dynamic dims).
 -- =============================================================================
 
 

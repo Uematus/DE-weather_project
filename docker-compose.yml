@@ -7,12 +7,24 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Hard-cap math libraries to 1 thread (belt-and-braces with the code).
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      STAN_NUM_THREADS: "1"
     volumes:
       - ./weather:/app
     working_dir: /app
     tty: true
     stdin_open: true
     command: sleep infinity
+    # Hard resource ceiling so Prophet/cmdstan can never starve the host.
+    # Tune the numbers below to your VPS (leave at least ~1 GB + 1 core free
+    # for the host + postgres).
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1g
     networks:
       - de_net
     depends_on:
